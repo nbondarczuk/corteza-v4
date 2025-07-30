@@ -20,6 +20,12 @@ dump:
 restore:
 	cat dump.sql | $(DC) exec db psql -U $(POSTGRES_USER)
 
+exec-db:
+	$(DC) exec -it db psql -U $(POSTGRES_USER)
+
+exec-server:
+	$(DC) exec -it server bash
+
 stop:
 	$(DC) down
 
