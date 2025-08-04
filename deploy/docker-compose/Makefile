@@ -26,6 +26,14 @@ exec-db:
 exec-server:
 	$(DC) exec -it server bash
 
+exec-corredor:
+	$(DC) exec -it corredor bash
+
+init-db:
+	$(DC) cp sql/v4final-backend-ddl-tables.sql db:/
+	$(DC) exec -it db psql -U $(POSTGRES_USER) -c "CREATE DATABASE backend;"
+	$(DC) exec -it db psql -U $(POSTGRES_USER) -d backend -f /backend-ddl-tables.sql
+
 stop:
 	$(DC) down
 

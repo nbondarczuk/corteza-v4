@@ -25,6 +25,12 @@ services:
       #
       LOG_LEVEL: ${LOG_LEVEL}
 
+  corredor:
+    image: cortezaproject/corteza-server-corredor:${CORREDOR_VERSION}
+    restart: on-failure
+    env_file: [ .env ]
+    volumes: [ "./scripts:/corredor/scripts" ]
+
   db:
     # PostgreSQL Database
     # See https://hub.docker.com/_/postgres for details
