@@ -1,6 +1,7 @@
 DC := docker-compose
 # OMIT_TABLES := -T corteza.actionlog -T corteza.automation_sessions -T corteza.resource_activity_log
 TS := $(shell date "+%Y%m%d%H%M%S")
+BACKEND_DDL_FILE ?= sql/backend-ddl-tables.sql
 
 start:
 	$(DC) up -d
@@ -30,9 +31,9 @@ exec-corredor:
 	$(DC) exec -it corredor bash
 
 init-db:
-	$(DC) cp sql/v4final-backend-ddl-tables.sql db:/
+	$(DC) cp ${BACKEND_DDL_FILE} db:/
 	$(DC) exec -it db psql -U $(POSTGRES_USER) -c "CREATE DATABASE backend;"
-	$(DC) exec -it db psql -U $(POSTGRES_USER) -d backend -f /backend-ddl-tables.sql
+	$(DC) exec -it db psql -U $(POSTGRES_USER) -d backend -f /${BACKEND_DDL_FILE}
 
 stop:
 	$(DC) down
