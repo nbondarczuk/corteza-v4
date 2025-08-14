@@ -3,10 +3,10 @@ DC := docker-compose
 TS := $(shell date "+%Y%m%d%H%M%S")
 BACKEND_DDL_FILE ?= sql/backend-ddl-tables.sql
 
-start:
+up:
 	$(DC) up -d
 
-show:
+ps:
 	$(DC) ps
 
 version:
@@ -35,7 +35,7 @@ init-db:
 	$(DC) exec -it db psql -U $(POSTGRES_USER) -c "CREATE DATABASE backend;"
 	$(DC) exec -it db psql -U $(POSTGRES_USER) -d backend -f /${BACKEND_DDL_FILE}
 
-stop:
+down:
 	$(DC) down
 
 clean:
