@@ -1,0 +1,3545 @@
+openapi: 3.0.3
+info:
+  title: V4Final Web API
+  description: |
+    V4Final Web API provides endpoints for managing matters, matter files, redline documents, domains, and localized enums.
+    This API supports Azure Functions deployment and includes CORS configuration for web applications.
+    
+    ## Semantic Route Equivalence
+    
+    This API implements semantic route equivalence, where different URL patterns can access the same functionality:
+    
+    - `/api/matters/{guid}/files` ≡ `/api/matterfiles?matter={guid}`
+    - `/api/matterfiles/{guid}/versions` ≡ `/api/matterfileversions?matterfile={guid}`
+    
+    The nested REST-style routes provide better URL structure while maintaining backward compatibility 
+    with query parameter-based endpoints.
+    
+  version: 1.0.0
+  contact:
+    name: V4Final Support
+    url: https://v4webserver-test-fkbzamfhhffxahfx.westus3-01.azurewebsites.net
+    email: support@v4final.ai
+  license:
+    name: Proprietary
+    url: https://v4webserver-test-fkbzamfhhffxahfx.westus3-01.azurewebsites.net/license
+
+servers:
+  - url: https://v4webserver-test-fkbzamfhhffxahfx.westus3-01.azurewebsites.net/
+    description: Test Azure Functions
+  - url: http://localhost:7071
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Health check and API status endpoints
+  - name: Documentation
+    description: API documentation and OpenAPI specifications
+  - name: Enums
+    description: Localized enumeration management and translation
+  - name: Matters
+    description: Matter entry management operations
+  - name: Matter Files
+    description: Matter file management operations
+  - name: Matter File Versions
+    description: Matter file version management operations
+  - name: Redlines
+    description: Individual redline entry management operations
+  - name: Redline Documents
+    description: Redline document collection management operations
+  - name: Documents
+    description: Document management and upload operations
+  - name: Notes
+    description: Note management and tracking operations
+  - name: Domains
+    description: Domain hierarchy configuration management operations
+  - name: Audit
+    description: Audit log management and tracking operations
+
+paths:
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Returns the health status of the API service
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
+
+  /api/swagger.yaml:
+    get:
+      tags:
+        - Documentation
+      summary: Get OpenAPI specification
+      description: Returns the OpenAPI 3.0 specification for this API in YAML format
+      operationId: getSwagger
+      responses:
+        '200':
+          description: Successfully retrieved OpenAPI specification
+          content:
+            text/yaml:
+              schema:
+                type: string
+                description: OpenAPI 3.0 specification in YAML format
+            application/x-yaml:
+              schema:
+                type: string
+                description: OpenAPI 3.0 specification in YAML format
+        '404':
+          description: Swagger file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/license:
+    get:
+      tags:
+        - Documentation
+      summary: Get license information as JSON
+      description: Returns the license information for this API in JSON format
+      operationId: getLicense
+      responses:
+        '200':
+          description: Successfully retrieved license information
+          content:
+            application/json:
+              schema:
+                type: string
+                description: License information in JSON format
+        '404':
+          description: License file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/license.txt:
+    get:
+      tags:
+        - Documentation
+      summary: Get license information as plain text
+      description: Returns the license information for this API in plain text format
+      operationId: getLicenseText
+      responses:
+        '200':
+          description: Successfully retrieved license information
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: License information in plain text format
+        '404':
+          description: License file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/enums:
+    get:
+      tags:
+        - Enums
+      summary: Get all localized enum maps
+      description: |
+        Retrieves all available localized enumeration maps. 
+        Supports optional language parameter for localization.
+      operationId: getEnums
+      parameters:
+        - name: lang
+          in: query
+          description: Language code for localization (e.g., "en-US", "fr")
+          required: false
+          schema:
+            type: string
+            default: "en-US"
+            example: "en-US"
+      responses:
+        '200':
+          description: Successfully retrieved enum maps
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  description: Localized enum map
+        '500':
+          description: Failed to retrieve enums
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Enums
+      summary: CORS preflight for enums
+      description: Handles CORS preflight requests for enum endpoints
+      operationId: enumsOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/enums/{enumName}:
+    parameters:
+      - name: enumName
+        in: path
+        description: Name of the enum to retrieve
+        required: true
+        schema:
+          type: string
+          example: "ContractStatus"
+    get:
+      tags:
+        - Enums
+      summary: Get specific localized enum map
+      description: |
+        Retrieves a specific localized enumeration map by name.
+        Supports optional language parameter for localization.
+      operationId: getEnumByName
+      parameters:
+        - name: lang
+          in: query
+          description: Language code for localization (e.g., "en-US", "fr")
+          required: false
+          schema:
+            type: string
+            default: "en-US"
+            example: "en-US"
+      responses:
+        '200':
+          description: Successfully retrieved enum map
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Localized enum map for the specified enum
+        '400':
+          description: Enum name not specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Enum not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Enums
+      summary: CORS preflight for specific enum
+      description: Handles CORS preflight requests for specific enum endpoints
+      operationId: enumByNameOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matters:
+    get:
+      tags:
+        - Matters
+      summary: List all matters
+      description: |
+        Retrieves a list of all matters. Supports filtering by matter type.
+      operationId: listMatters
+      parameters:
+        - name: type
+          in: query
+          description: Filter matters by type (integer value of MatterType)
+          required: false
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Successfully retrieved matters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Matter'
+        '400':
+          description: Invalid matter type parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve matters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Matters
+      summary: Create a new matter
+      description: Creates a new matter of the specified type
+      operationId: createMatter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMatterEntryRequest'
+      responses:
+        '201':
+          description: Matter created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Matter'
+        '400':
+          description: Invalid matter data or missing matter_type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to create matter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matters
+      summary: CORS preflight for matters
+      description: Handles CORS preflight requests for matter endpoints
+      operationId: mattersOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matters/{matterId}:
+    parameters:
+      - name: matterId
+        in: path
+        description: Matter GUID or matter reference ID
+        required: true
+        schema:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+    get:
+      tags:
+        - Matters
+      summary: Get matter by ID
+      description: |
+        Retrieves a specific matter by its GUID or matter reference ID.
+        If a matter reference ID is provided, it will be resolved to the corresponding matter GUID.
+      operationId: getMatter
+      responses:
+        '200':
+          description: Successfully retrieved matter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Matter'
+        '400':
+          description: Invalid matter ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Matters
+      summary: Update matter
+      description: Updates an existing matter by ID
+      operationId: updateMatter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMatterRequest'
+      responses:
+        '204':
+          description: Matter updated successfully
+        '400':
+          description: Invalid matter ID or data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Matters
+      summary: Delete matter
+      description: Deletes a matter by ID
+      operationId: deleteMatter
+      responses:
+        '204':
+          description: Matter deleted successfully
+        '400':
+          description: Invalid matter ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matters
+      summary: CORS preflight for specific matter
+      description: Handles CORS preflight requests for specific matter endpoints
+      operationId: matterByIdOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matterfiles:
+    get:
+      tags:
+        - Matter Files
+      summary: List all matter files
+      description: Retrieves a list of all matter files
+      operationId: listMatterFiles
+      responses:
+        '200':
+          description: Successfully retrieved matter files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatterFile'
+        '500':
+          description: Failed to retrieve matter files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Matter Files
+      summary: Create a new matter file
+      description: Creates a new matter file entry
+      operationId: createMatterFile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMatterFileRequest'
+      responses:
+        '201':
+          description: Matter file created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatterFile'
+        '400':
+          description: Invalid matter file data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to create matter file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matter Files
+      summary: CORS preflight for matter files
+      description: Handles CORS preflight requests for matter file endpoints
+      operationId: matterFilesOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matters/{matterId}/files:
+    get:
+      tags:
+        - Matters
+      summary: Get files for a specific matter
+      description: |
+        Retrieves all files associated with a specific matter. This is semantically 
+        equivalent to /api/matterfiles?matter={matterId} but provides a more REST-like URL structure.
+      operationId: getMatterFiles
+      parameters:
+        - name: matterId
+          in: path
+          description: Matter GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved matter files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatterFile'
+        '400':
+          description: Invalid matter ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve matter files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matters
+      summary: CORS preflight for matter files
+      description: Handles CORS preflight requests for matter files endpoints
+      operationId: matterFilesOptionsByMatter
+      parameters:
+        - name: matterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matterfiles/{matterFileId}:
+    get:
+      tags:
+        - Matter Files
+      summary: Get matter file by ID
+      description: Retrieves a specific matter file by its GUID
+      operationId: getMatterFile
+      parameters:
+        - name: matterFileId
+          in: path
+          description: Matter file GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved matter file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatterFile'
+        '400':
+          description: Invalid matter file ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Matter Files
+      summary: Update matter file
+      description: Updates an existing matter file by ID
+      operationId: updateMatterFile
+      parameters:
+        - name: matterFileId
+          in: path
+          description: Matter file GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMatterFileRequest'
+      responses:
+        '200':
+          description: Matter file updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatterFile'
+        '400':
+          description: Invalid matter file ID or data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Matter Files
+      summary: Delete matter file
+      description: Deletes a matter file by ID
+      operationId: deleteMatterFile
+      parameters:
+        - name: matterFileId
+          in: path
+          description: Matter file GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '204':
+          description: Matter file deleted successfully
+        '400':
+          description: Invalid matter file ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matter Files
+      summary: CORS preflight for specific matter file
+      description: Handles CORS preflight requests for specific matter file endpoints
+      operationId: matterFileByIdOptions
+      parameters:
+        - name: matterFileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matterfiles/{matterFileId}/versions:
+    get:
+      tags:
+        - Matter Files
+      summary: Get versions for a specific matter file
+      description: |
+        Retrieves all versions of a specific matter file. This is semantically 
+        equivalent to /api/matterfileversions?matterfile={matterFileId} but provides 
+        a more REST-like URL structure.
+      operationId: getMatterFileVersions
+      parameters:
+        - name: matterFileId
+          in: path
+          description: Matter file GUID to get versions for
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "456e7890-e89b-12d3-a456-426614174001"
+      responses:
+        '200':
+          description: Successfully retrieved matter file versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatterFileVersion'
+        '400':
+          description: Invalid matter file ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve matter file versions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matter Files
+      summary: CORS preflight for matter file versions
+      description: Handles CORS preflight requests for matter file versions endpoints
+      operationId: matterFileVersionsOptionsByFile
+      parameters:
+        - name: matterFileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matterfileversions:
+    get:
+      tags:
+        - Matter File Versions
+      summary: List matter file versions
+      description: |
+        Retrieves a list of matter file versions. Requires matterfile query parameter 
+        to specify the matter file GUID to get versions for.
+      operationId: listMatterFileVersions
+      parameters:
+        - name: matterfile
+          in: query
+          description: Matter file GUID to get versions for
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "456e7890-e89b-12d3-a456-426614174001"
+      responses:
+        '200':
+          description: Successfully retrieved matter file versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatterFileVersion'
+        '400':
+          description: Invalid matter file GUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve matter file versions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Matter File Versions
+      summary: Create a new matter file version
+      description: Creates a new matter file version entry
+      operationId: createMatterFileVersion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMatterFileVersionRequest'
+      responses:
+        '201':
+          description: Matter file version created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatterFileVersion'
+        '400':
+          description: Invalid matter file version data or missing matter_file_guid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Invalid content type (must be application/json)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to create matter file version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matter File Versions
+      summary: CORS preflight for matter file versions
+      description: Handles CORS preflight requests for matter file version endpoints
+      operationId: matterFileVersionsOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matterfileversions/{matterFileVersionId}:
+    get:
+      tags:
+        - Matter File Versions
+      summary: Get matter file version by ID
+      description: Retrieves a specific matter file version by its GUID
+      operationId: getMatterFileVersion
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          description: Matter file version GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved matter file version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatterFileVersion'
+        '400':
+          description: Invalid matter file version ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter file version not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Matter File Versions
+      summary: Update matter file version
+      description: Updates an existing matter file version by ID
+      operationId: updateMatterFileVersion
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          description: Matter file version GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMatterFileVersionRequest'
+      responses:
+        '204':
+          description: Matter file version updated successfully
+        '400':
+          description: Invalid matter file version ID or data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter file version not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to update matter file version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Matter File Versions
+      summary: Delete matter file version
+      description: Deletes a matter file version by ID
+      operationId: deleteMatterFileVersion
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          description: Matter file version GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '204':
+          description: Matter file version deleted successfully
+        '400':
+          description: Invalid matter file version ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter file version not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to delete matter file version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matter File Versions
+      summary: CORS preflight for specific matter file version
+      description: Handles CORS preflight requests for specific matter file version endpoints
+      operationId: matterFileVersionByIdOptions
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matterfileversions/{matterFileVersionId}/redlines:
+    get:
+      tags:
+        - Matter File Versions
+      summary: Get redlines for a matter file version
+      description: Retrieves redline documents associated with a specific matter file version
+      operationId: getMatterFileVersionRedlines
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          description: Matter file version GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved redlines for matter file version
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RedlineDocument'
+        '400':
+          description: Invalid matter file version ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter file version not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve redlines
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matter File Versions
+      summary: CORS preflight for matter file version redlines
+      description: Handles CORS preflight requests for matter file version redlines endpoints
+      operationId: matterFileVersionRedlinesOptions
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/redlinedocuments:
+    get:
+      tags:
+        - Redline Documents
+      summary: List all redline documents
+      description: Retrieves a list of all redline documents
+      operationId: listRedlineDocuments
+      responses:
+        '200':
+          description: Successfully retrieved redline documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RedlineDocument'
+        '500':
+          description: Failed to retrieve redline documents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Redline Documents
+      summary: Create a new redline document
+      description: Creates a new redline document entry
+      operationId: createRedlineDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRedlineDocumentRequest'
+      responses:
+        '201':
+          description: Redline document created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedlineDocument'
+        '400':
+          description: Invalid redline document data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Content-Type must be application/json
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to create redline document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Redlines
+      summary: CORS preflight for redline documents
+      description: Handles CORS preflight requests for redline document endpoints
+      operationId: redlineDocumentsOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/redlinedocuments/{redlineDocumentId}:
+    get:
+      tags:
+        - Redline Documents
+      summary: Get redline document by ID
+      description: Retrieves a specific redline document by its GUID
+      operationId: getRedlineDocument
+      parameters:
+        - name: redlineDocumentId
+          in: path
+          description: Redline document GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved redline document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedlineDocument'
+        '400':
+          description: Invalid redline document ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Redline document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Redline Documents
+      summary: Update redline document
+      description: This endpoint is read-only and returns 403 Forbidden
+      operationId: updateRedlineDocument
+      parameters:
+        - name: redlineDocumentId
+          in: path
+          description: Redline document GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '403':
+          description: This endpoint is read-only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Invalid redline document ID or data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Redline document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Redline Documents
+      summary: Delete redline document
+      description: Deletes a redline document by ID
+      operationId: deleteRedlineDocument
+      parameters:
+        - name: redlineDocumentId
+          in: path
+          description: Redline document GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '204':
+          description: Redline document deleted successfully
+        '400':
+          description: Invalid redline document ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Redline document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Redlines
+      summary: CORS preflight for specific redline document
+      description: Handles CORS preflight requests for specific redline document endpoints
+      operationId: redlineDocumentByIdOptions
+      parameters:
+        - name: redlineDocumentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/redlinedocuments/{redlineDocumentId}/redlines:
+    get:
+      tags:
+        - Redlines
+      summary: Get redlines for a redline document
+      description: Retrieves redline details associated with a specific redline document
+      operationId: getRedlineDocumentRedlines
+      parameters:
+        - name: redlineDocumentId
+          in: path
+          description: Redline document GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved redlines for redline document
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Redline'
+        '400':
+          description: Invalid redline document ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Redline document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve redlines
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Redlines
+      summary: CORS preflight for redline document redlines
+      description: Handles CORS preflight requests for redline document redlines endpoints
+      operationId: redlineDocumentRedlinesOptions
+      parameters:
+        - name: redlineDocumentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/redlinedocuments/{redlineDocumentId}/comments:
+    get:
+      tags:
+        - Redline Documents
+      summary: Get comments for a redline document
+      description: |
+        Retrieves comments associated with a specific redline document with optional filtering.
+        
+        **Query Parameter Scenarios:**
+        1. No query parameters: Returns all comments associated with the redline document
+        2. `?redline={redline_guid}`: Returns comments associated with the specified redline
+        3. `?comments={comment_guid1},{comment_guid2}`: Returns only the specified comments
+      operationId: getRedlineDocumentComments
+      parameters:
+        - name: redlineDocumentId
+          in: path
+          description: Redline document GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+        - name: redline
+          in: query
+          description: Filter comments by specific redline GUID
+          required: false
+          schema:
+            type: string
+            format: uuid
+            example: "456e7890-e89b-12d3-a456-426614174001"
+        - name: comments
+          in: query
+          description: Filter by specific comment GUIDs (comma-separated list)
+          required: false
+          schema:
+            type: string
+            example: "789e0123-e89b-12d3-a456-426614174002,abc1234d-e89b-12d3-a456-426614174003"
+      responses:
+        '200':
+          description: Successfully retrieved comments for redline document
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+        '400':
+          description: Invalid redline document ID or query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Redline document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Service method not yet implemented in SDK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Redline Documents
+      summary: CORS preflight for redline document comments
+      description: Handles CORS preflight requests for redline document comments endpoints
+      operationId: redlineDocumentCommentsOptions
+      parameters:
+        - name: redlineDocumentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/redlines:
+    get:
+      tags:
+        - Redlines
+      summary: List all redline entries
+      description: Retrieves a list of all individual redline entries
+      operationId: listRedlines
+      responses:
+        '200':
+          description: Successfully retrieved redline entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RedlineEntry'
+        '500':
+          description: Failed to retrieve redline entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Redlines
+      summary: Create a new redline entry
+      description: Creates a new individual redline entry
+      operationId: createRedline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRedlineRequest'
+      responses:
+        '201':
+          description: Redline entry created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedlineEntry'
+        '400':
+          description: Invalid redline entry data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to create redline entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Redlines
+      summary: CORS preflight for redlines
+      description: Handles CORS preflight requests for redline endpoints
+      operationId: redlinesOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/redlines/{redlineId}:
+    get:
+      tags:
+        - Redlines
+      summary: Get redline entry by ID
+      description: Retrieves a specific redline entry by its GUID
+      operationId: getRedline
+      parameters:
+        - name: redlineId
+          in: path
+          description: Redline entry GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved redline entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedlineEntry'
+        '400':
+          description: Invalid redline entry ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Redline entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Redlines
+      summary: Update redline entry
+      description: Updates an existing redline entry by ID
+      operationId: updateRedline
+      parameters:
+        - name: redlineId
+          in: path
+          description: Redline entry GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRedlineRequest'
+      responses:
+        '200':
+          description: Redline entry updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedlineEntry'
+        '400':
+          description: Invalid redline entry ID or data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Redline entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Redlines
+      summary: Delete redline entry
+      description: Deletes a redline entry by ID
+      operationId: deleteRedline
+      parameters:
+        - name: redlineId
+          in: path
+          description: Redline entry GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '204':
+          description: Redline entry deleted successfully
+        '400':
+          description: Invalid redline entry ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Redline entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Redlines
+      summary: CORS preflight for specific redline entry
+      description: Handles CORS preflight requests for specific redline entry endpoints
+      operationId: redlineByIdOptions
+      parameters:
+        - name: redlineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/documents:
+    get:
+      tags:
+        - Documents
+      summary: List all documents
+      description: |
+        Retrieves a list of all documents. Supports filtering by owner GUID.
+      operationId: listDocuments
+      parameters:
+        - name: owner
+          in: query
+          description: Owner GUID to filter documents by
+          required: false
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Document'
+        '500':
+          description: Failed to retrieve documents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Documents
+      summary: Create a new document
+      description: Creates a new document entry
+      operationId: createDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentRequest'
+      responses:
+        '201':
+          description: Document created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          description: Invalid document data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to create document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Documents
+      summary: CORS preflight for documents
+      description: Handles CORS preflight requests for document endpoints
+      operationId: documentsOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/documents/{documentId}:
+    get:
+      tags:
+        - Documents
+      summary: Get document by ID
+      description: Retrieves a specific document by its GUID
+      operationId: getDocument
+      parameters:
+        - name: documentId
+          in: path
+          description: Document GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          description: Invalid document ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Documents
+      summary: Update document
+      description: Updates an existing document by ID
+      operationId: updateDocument
+      parameters:
+        - name: documentId
+          in: path
+          description: Document GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentRequest'
+      responses:
+        '200':
+          description: Document updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          description: Invalid document ID or data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Documents
+      summary: Delete document
+      description: Deletes a document by ID
+      operationId: deleteDocument
+      parameters:
+        - name: documentId
+          in: path
+          description: Document GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '204':
+          description: Document deleted successfully
+        '400':
+          description: Invalid document ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Documents
+      summary: CORS preflight for specific document
+      description: Handles CORS preflight requests for specific document endpoints
+      operationId: documentByIdOptions
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/documents/upload:
+    post:
+      tags:
+        - Documents
+      summary: Upload a document
+      description: Uploads a new document with file data and metadata
+      operationId: uploadDocument
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The document file to upload
+                owner_guid:
+                  type: string
+                  format: uuid
+                  description: Owner GUID for the document
+                filename:
+                  type: string
+                  description: Name of the file being uploaded
+                name:
+                  type: string
+                  description: Name of the document
+                description:
+                  type: string
+                  description: Description of the document
+              required:
+                - file
+                - owner_guid
+      responses:
+        '201':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          description: Invalid upload data or file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to upload document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Documents
+      summary: CORS preflight for document upload
+      description: Handles CORS preflight requests for document upload endpoint
+      operationId: documentUploadOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matterfileversions/{matterFileVersionId}/redlinedocument:
+    get:
+      tags:
+        - Matter File Versions
+      summary: Get redline document for a matter file version
+      description: Retrieves the redline document associated with a specific matter file version
+      operationId: getMatterFileVersionRedlineDocument
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          description: Matter file version GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved redline document for matter file version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedlineDocument'
+        '400':
+          description: Invalid matter file version ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter file version or redline document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve redline document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matter File Versions
+      summary: CORS preflight for matter file version redline document
+      description: Handles CORS preflight requests for matter file version redline document endpoint
+      operationId: matterFileVersionRedlineDocumentOptions
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/matterfileversions/{matterFileVersionId}/document:
+    get:
+      tags:
+        - Matter File Versions
+      summary: Get document for a matter file version
+      description: Retrieves the document associated with a specific matter file version
+      operationId: getMatterFileVersionDocument
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          description: Matter file version GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved document for matter file version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          description: Invalid matter file version ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Matter file version or document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Matter File Versions
+      summary: CORS preflight for matter file version document
+      description: Handles CORS preflight requests for matter file version document endpoint
+      operationId: matterFileVersionDocumentOptions
+      parameters:
+        - name: matterFileVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/notes:
+    get:
+      tags:
+        - Notes
+      summary: List notes for an object
+      description: |
+        Retrieves a list of notes associated with a specific object. 
+        Requires the 'object' query parameter with a GUID.
+      operationId: listNotes
+      parameters:
+        - name: object
+          in: query
+          description: Object GUID to get notes for
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved notes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteList'
+        '400':
+          description: Missing or invalid object GUID parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve notes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Notes
+      summary: Create a new note
+      description: Creates a new note entry
+      operationId: createNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNoteRequest'
+      responses:
+        '201':
+          description: Note created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid note data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Content-Type must be application/json
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to create note
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Notes
+      summary: CORS preflight for notes
+      description: Handles CORS preflight requests for notes endpoints
+      operationId: notesOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/notes/{noteId}:
+    get:
+      tags:
+        - Notes
+      summary: Get note by ID
+      description: Retrieves a specific note by its GUID
+      operationId: getNote
+      parameters:
+        - name: noteId
+          in: path
+          description: Note GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved note
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid note ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Notes
+      summary: Update note
+      description: Updates an existing note by ID
+      operationId: updateNote
+      parameters:
+        - name: noteId
+          in: path
+          description: Note GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNoteRequest'
+      responses:
+        '200':
+          description: Note updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid note ID or data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Content-Type must be application/json
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to update note
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Notes
+      summary: Delete note
+      description: Deletes a note by ID
+      operationId: deleteNote
+      parameters:
+        - name: noteId
+          in: path
+          description: Note GUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '204':
+          description: Note deleted successfully
+        '400':
+          description: Invalid note ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to delete note
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Notes
+      summary: CORS preflight for specific note
+      description: Handles CORS preflight requests for specific note endpoints
+      operationId: noteByIdOptions
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/domains:
+    get:
+      tags:
+        - Domains
+      summary: List all domains
+      description: |
+        Retrieves a list of all available domains. Supports format parameter to control response structure.
+      operationId: listDomains
+      parameters:
+        - name: format
+          in: query
+          description: Format for response - 'list' for flat list of domain entries, 'tree' for hierarchical structure
+          required: false
+          schema:
+            type: string
+            enum: [list, tree]
+            default: list
+            example: "list"
+      responses:
+        '200':
+          description: Successfully retrieved domains
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/DomainEntry'
+                    description: Flat list of domain entries (format=list)
+                  - $ref: '#/components/schemas/Domain'
+                    description: Hierarchical domain structure (format=tree)
+        '400':
+          description: Invalid format parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve domains
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Domains
+      summary: Create a new domain
+      description: Creates a new domain entry
+      operationId: createDomain
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDomainRequest'
+      responses:
+        '201':
+          description: Domain created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domain'
+        '400':
+          description: Invalid domain data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to create domain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Domains
+      summary: CORS preflight for domains
+      description: Handles CORS preflight requests for domain endpoints
+      operationId: domainsOptions
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/domains/{domainId}:
+    get:
+      tags:
+        - Domains
+      summary: Get domain by ID
+      description: |
+        Retrieves a specific domain by its ID. Special handling is provided for the "$ROOT" domain 
+        which represents the root of the domain hierarchy. Supports format parameter to control response structure.
+      operationId: getDomain
+      parameters:
+        - name: domainId
+          in: path
+          description: Domain ID or "$ROOT" for the root domain
+          required: true
+          schema:
+            type: string
+            example: "legal-contracts"
+        - name: format
+          in: query
+          description: Format for response - 'list' for flat list of domain entries, 'tree' for hierarchical structure
+          required: false
+          schema:
+            type: string
+            enum: [list, tree]
+            default: list
+            example: "list"
+      responses:
+        '200':
+          description: Successfully retrieved domain
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/DomainEntry'
+                    description: Flat list of domain entries (format=list)
+                  - $ref: '#/components/schemas/Domain'
+                    description: Hierarchical domain structure (format=tree)
+        '400':
+          description: Invalid domain ID or format parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Domain not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Domains
+      summary: Update domain
+      description: |
+        Updates an existing domain by ID. Note: The "$ROOT" domain can be updated but cannot be deleted.
+      operationId: updateDomain
+      parameters:
+        - name: domainId
+          in: path
+          description: Domain ID or "$ROOT" for the root domain
+          required: true
+          schema:
+            type: string
+            example: "legal-contracts"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDomainRequest'
+      responses:
+        '200':
+          description: Domain updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domain'
+        '400':
+          description: Invalid domain ID or data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Domain not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Domains
+      summary: Delete domain
+      description: |
+        Deletes a domain by ID. Note: The "$ROOT" domain cannot be deleted and will return a 400 error.
+      operationId: deleteDomain
+      parameters:
+        - name: domainId
+          in: path
+          description: Domain ID (cannot be "$ROOT")
+          required: true
+          schema:
+            type: string
+            example: "legal-contracts"
+      responses:
+        '204':
+          description: Domain deleted successfully
+        '400':
+          description: Invalid domain ID or cannot delete root domain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Domain not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Domains
+      summary: CORS preflight for specific domain
+      description: Handles CORS preflight requests for specific domain endpoints
+      operationId: domainByIdOptions
+      parameters:
+        - name: domainId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: CORS preflight successful
+
+  /api/audit/{objectId}:
+    get:
+      tags:
+        - Audit
+      summary: Get audit log for object
+      description: Retrieves the audit log for a specific object identified by GUID
+      operationId: getAuditLogForObject
+      parameters:
+        - name: objectId
+          in: path
+          description: Object GUID to retrieve audit log for
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved audit log for object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLog'
+        '400':
+          description: Invalid object GUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No audit log found for the specified object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to retrieve audit log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    options:
+      tags:
+        - Audit
+      summary: CORS preflight for audit log
+      description: Handles CORS preflight requests for audit log endpoints
+      operationId: auditLogOptions
+      parameters:
+        - name: objectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CORS preflight successful
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "Resource not found"
+        code:
+          type: string
+          description: Error code
+          example: "NOT_FOUND"
+      required:
+        - message
+    SecurityCheckResult:
+      type: object
+      properties:
+        status:
+          type: integer
+          format: uint8
+          description: Status indicates the current state of the security check (pass/fail/cleared)
+          example: 1
+        analysis:
+          type: string
+          description: Analysis provides details about the security check result
+          example: "No security issues detected"
+        performed_at:
+          type: string
+          format: date-time
+          description: Timestamp when the security check was performed
+          example: "2025-01-01T00:00:00Z"
+        cleared_by:
+          type: string
+          description: User or system that cleared a failed security check
+          example: "admin"
+        cleared_at:
+          type: string
+          format: date-time
+          description: Timestamp when a failed security check was cleared
+          example: "2025-01-02T00:00:00Z"
+        cleared_reason:
+          type: string
+          description: Additional context for why a security check was cleared
+          example: "False positive"
+      required:
+        - status
+        - analysis
+        - performed_at
+
+    MatterFile:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Unique identifier for the docket file
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        parent_guid:
+          type: string
+          format: uuid
+          description: Parent GUID for the matter file
+          example: "456e7890-e89b-12d3-a456-426614174001"
+        name:
+          type: string
+          description: Name of the docket file
+          example: "contract.pdf"
+        description:
+          type: string
+          description: Description of the docket file
+          example: "Main contract document"
+        created_by:
+          type: string
+          description: User ID of the user who created the docket file
+          example: "user123"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the docket file was created
+          example: "2025-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the docket file was last updated
+          example: "2025-01-15T12:30:00Z"
+        file_type:
+          type: integer
+          format: uint8
+          description: Type of the docket file (e.g., Original, Edited, etc.)
+          example: 1
+      required:
+        - guid
+        - parent_guid
+        - name
+        - description
+        - created_by
+        - created_at
+        - updated_at
+        - file_type
+
+    CreateMatterFileRequest:
+      type: object
+      properties:
+        matter_guid:
+          type: string
+          format: uuid
+          description: Associated matter GUID
+          example: "456e7890-e89b-12d3-a456-426614174001"
+      required:
+        - matter_guid
+
+    UpdateMatterFileRequest:
+      type: object
+      properties:
+        fileName:
+          type: string
+          description: File name
+          example: "updated_contract_v2.pdf"
+        mimeType:
+          type: string
+          description: MIME type of the file
+          example: "application/pdf"
+
+    Matter:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Unique identifier for the matter
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        id:
+          type: string
+          description: Reference ID for the Matter
+          example: "COM-000-0001"
+        name:
+          type: string
+          description: Name of the Matter
+          example: "Commercial Contract Matter"
+        description:
+          type: string
+          description: Description of the Matter
+          example: "Software licensing agreement matter"
+        reference_serial:
+          type: integer
+          description: Our Identifier for the Matter - serial number
+          example: 1
+        created_by:
+          type: string
+          description: User ID of the user who created the matter
+          example: "user123"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the matter was created
+          example: "2025-01-01T00:00:00Z"
+        created_for:
+          type: string
+          description: User ID of the user for whom the matter was created
+          example: "user456"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the matter was last updated
+          example: "2025-01-15T12:30:00Z"
+        reviewer:
+          type: string
+          description: User ID of the user who is the reviewer for the matter
+          example: "user789"
+        status:
+          type: integer
+          description: Current status of the matter
+          example: 2
+        matter_detail:
+          description: Additional data specific to the matter type
+        domain:
+          type: string
+          description: Domain ID of the matter – to what organization or other domain does the matter belong
+          example: "Contoso"
+        assignment_history:
+          $ref: '#/components/schemas/AssignmentHistory'
+        status_history:
+          $ref: '#/components/schemas/StatusHistory'
+      required:
+        - guid
+        - id
+        - name
+        - description
+        - reference_serial
+        - created_by
+        - created_at
+        - updated_at
+        - matter_detail
+        - domain
+        - assignment_history
+        - status_history
+
+    AssignmentHistory:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssignmentEntry'
+          description: List of assignments, order by time in ascending order
+      required:
+        - entries
+
+    AssignmentEntry:
+      type: object
+      properties:
+        user:
+          type: string
+          description: User ID of the user to whom the matter is assigned
+          example: "user123"
+        assigned_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the matter was assigned
+          example: "2025-01-01T00:00:00Z"
+      required:
+        - user
+        - assigned_at
+
+    StatusHistory:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusHistoryEntry'
+          description: List of docket status changes, order by time in ascending order
+      required:
+        - entries
+
+    StatusHistoryEntry:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: The new status of the docket
+          example: 2
+        changed_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the status was changed
+          example: "2025-01-01T00:00:00Z"
+        changed_by:
+          type: string
+          description: User ID of the user who changed the status
+          example: "user123"
+      required:
+        - status
+        - changed_at
+        - changed_by
+
+    CreateMatterEntryRequest:
+      type: object
+      properties:
+        matter_type:
+          type: integer
+          description: Integer representing the MatterType to create
+          example: 1
+        name:
+          type: string
+          description: Optional name for the new matter
+          example: "New Commercial Contract"
+        description:
+          type: string
+          description: Optional description for the new matter
+          example: "Contract description"
+      required:
+        - matter_type
+
+    UpdateMatterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Matter name
+          example: "Updated Commercial Contract"
+        description:
+          type: string
+          description: Matter description
+          example: "Updated contract description"
+        status:
+          type: string
+          description: Matter status
+          example: "Active"
+
+    AuditLog:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEntry'
+          description: Ordered list of audit entries
+      required:
+        - entries
+
+    AuditEntry:
+      type: object
+      properties:
+        seq_id:
+          type: integer
+          description: Unique sequence identifier to ensure uniqueness when timestamps are identical
+          example: 1
+        timestamp:
+          type: string
+          format: date-time
+          description: When the audited event occurred
+          example: "2025-01-15T12:30:00Z"
+        username:
+          type: string
+          description: User who performed the action, if applicable
+          example: "user123"
+        event_id:
+          type: integer
+          description: Unique identifier for the audited event
+          example: 1001
+        message:
+          type: string
+          description: Human-readable description of the audited event
+          example: "File uploaded successfully"
+        data:
+          type: object
+          additionalProperties: true
+          description: Additional contextual information about the event
+          example: {"ip_address": "192.168.1.100", "user_agent": "Mozilla/5.0"}
+      required:
+        - seq_id
+        - timestamp
+        - message
+
+    MatterFileVersion:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Unique identifier for the matter file version
+          example: "abc12345-e89b-12d3-a456-426614174000"
+        parent_guid:
+          type: string
+          format: uuid
+          description: Parent GUID for the matter file version
+          example: "789e0123-e89b-12d3-a456-426614174002"
+        version_nr:
+          type: integer
+          description: Version number of this file version
+          example: 1
+          minimum: 1
+        created_by:
+          type: string
+          description: ID of the user who created this version
+          example: "user123"
+        created_at:
+          type: string
+          format: date-time
+          description: Version creation timestamp
+          example: "2025-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Version last update timestamp
+          example: "2025-01-15T12:30:00Z"
+        document:
+          $ref: '#/components/schemas/Document'
+        redline_document:
+          $ref: '#/components/schemas/RedlineDocument'
+      required:
+        - guid
+        - parent_guid
+        - version_nr
+        - created_by
+        - created_at
+        - updated_at
+        - document
+        - redline_document
+
+    CreateMatterFileVersionRequest:
+      type: object
+      properties:
+        matter_file_guid:
+          type: string
+          format: uuid
+          description: Associated matter file GUID
+          example: "789e0123-e89b-12d3-a456-426614174002"
+        version_number:
+          type: integer
+          description: Version number for this file version (optional, defaults to 1)
+          example: 1
+          minimum: 1
+      required:
+        - matter_file_guid
+
+    UpdateMatterFileVersionRequest:
+      type: object
+      properties:
+        fileName:
+          type: string
+          description: File name for this version
+          example: "updated_contract_v2.pdf"
+        fileSize:
+          type: integer
+          description: File size in bytes for this version
+          example: 1024000
+        mimeType:
+          type: string
+          description: MIME type of the file for this version
+          example: "application/pdf"
+        contentHash:
+          type: string
+          description: Hash of the file content for integrity verification
+          example: "sha256:a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+        isActive:
+          type: boolean
+          description: Whether this version is the active/current version
+          example: true
+        isDeleted:
+          type: boolean
+          description: Whether this version has been soft deleted
+          example: false
+
+    CreateNoteRequest:
+      type: object
+      properties:
+        for_guid:
+          type: string
+          format: uuid
+          description: GUID of the object this note is associated with
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          description: Title of the note
+          example: "Important Note"
+        content:
+          type: string
+          description: Content of the note
+          example: "This is the content of the note"
+        content_type:
+          type: string
+          description: Content type of the note (defaults to text/plain)
+          example: "text/plain"
+      required:
+        - for_guid
+        - title
+        - content
+
+    UpdateNoteRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Updated title of the note
+          example: "Updated Note Title"
+        content:
+          type: string
+          description: Updated content of the note
+          example: "Updated content of the note"
+        content_type:
+          type: string
+          description: Updated content type of the note
+          example: "text/markdown"
+
+    Note:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Note unique identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        object_guid:
+          type: string
+          format: uuid
+          description: GUID of the object this note is associated with
+          example: "456e7890-e89b-12d3-a456-426614174001"
+        title:
+          type: string
+          description: Title of the note
+          example: "Important Note"
+        content:
+          type: string
+          description: Content of the note
+          example: "This is the content of the note"
+        content_type:
+          type: string
+          description: Content type of the note
+          example: "text/plain"
+        created_at:
+          type: string
+          format: date-time
+          description: Note creation timestamp
+          example: "2025-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Note last update timestamp
+          example: "2025-01-15T12:30:00Z"
+        created_by:
+          type: string
+          description: User who created the note
+          example: "user123"
+      required:
+        - guid
+        - object_guid
+        - title
+        - content
+        - content_type
+        - created_at
+        - updated_at
+
+    NoteList:
+      type: object
+      properties:
+        notes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Note'
+          description: List of notes
+        count:
+          type: integer
+          description: Total count of notes
+          example: 5
+      required:
+        - notes
+        - count
+
+    RedlineDocument:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Unique identifier for the redline document
+          example: "abc12345-e89b-12d3-a456-426614174000"
+        parent_guid:
+          type: string
+          format: uuid
+          description: Parent GUID for the redline document
+          example: "def67890-e89b-12d3-a456-426614174003"
+        has_headings:
+          type: boolean
+          description: Whether the document has headings
+          example: true
+        analyses_presence:
+          type: object
+          additionalProperties:
+            type: boolean
+          description: Map of analysis types and their presence
+          example: {"legal_review": true, "compliance_check": false}
+        redline_type:
+          type: integer
+          description: Type of redline document
+          example: 1
+        headings:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/RedlineHeading'
+          description: Headings organized by source type
+        sources:
+          type: object
+          additionalProperties: true
+          description: Source documents and related data
+        comments:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/DocumentComment'
+          description: Comments mapped by UUID
+        created_at:
+          type: string
+          format: date-time
+          description: Document creation timestamp
+          example: "2025-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Document last update timestamp
+          example: "2025-01-15T12:30:00Z"
+      required:
+        - guid
+        - parent_guid
+        - has_headings
+        - redline_type
+        - created_at
+        - updated_at
+
+    RedlineHeading:
+      type: object
+      properties:
+        ordinal:
+          type: integer
+          description: Ordinal number of the heading
+          example: 1
+        level:
+          type: integer
+          description: Heading level (1 for H1, 2 for H2, etc.)
+          example: 2
+        heading_nr:
+          type: string
+          description: Heading number (e.g., "1.1")
+          example: "1.1"
+        heading_text:
+          type: string
+          description: Heading text
+          example: "Introduction"
+      required:
+        - ordinal
+        - level
+        - heading_nr
+        - heading_text
+
+    DocumentComment:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Unique identifier for the comment
+          example: "abc12345-e89b-12d3-a456-426614174000"
+        author:
+          type: string
+          description: Author of the comment
+          example: "John Doe"
+        initials:
+          type: string
+          description: Initials of the author
+          example: "JD"
+        text:
+          type: string
+          description: Comment text
+          example: "This is a comment"
+        created:
+          type: string
+          format: date-time
+          description: Timestamp of when the comment was created
+          example: "2023-01-01T12:00:00Z"
+        status:
+          type: integer
+          description: Status of the comment (e.g., open, resolved)
+          example: 1
+        parent_guid:
+          type: string
+          format: uuid
+          description: GUID of the parent comment, if this is a reply
+          example: "789e0123-e89b-12d3-a456-426614174002"
+        reply_guids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: GUIDs of replies to this comment, if any
+          example: []
+      required:
+        - guid
+        - author
+        - text
+        - created
+        - status
+
+    Comment:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Comment unique identifier
+          example: "789e0123-e89b-12d3-a456-426614174002"
+        redline_document_guid:
+          type: string
+          format: uuid
+          description: Associated redline document GUID
+          example: "abc12345-e89b-12d3-a456-426614174000"
+        redline_guid:
+          type: string
+          format: uuid
+          description: Associated redline GUID (optional)
+          example: "456e7890-e89b-12d3-a456-426614174001"
+        comment_text:
+          type: string
+          description: Content of the comment
+          example: "This clause needs revision"
+        comment_type:
+          type: string
+          description: Type of comment
+          example: "suggestion"
+        author:
+          type: string
+          description: Author of the comment
+          example: "john.doe@example.com"
+        created_at:
+          type: string
+          format: date-time
+          description: Comment creation timestamp
+          example: "2025-01-15T14:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Comment last update timestamp
+          example: "2025-01-15T15:45:00Z"
+        is_resolved:
+          type: boolean
+          description: Whether the comment has been resolved
+          example: false
+        position:
+          type: object
+          description: Position information for the comment
+          properties:
+            page:
+              type: integer
+              description: Page number where comment is located
+              example: 1
+            x:
+              type: number
+              description: X coordinate of comment position
+              example: 150.5
+            y:
+              type: number
+              description: Y coordinate of comment position
+              example: 200.0
+      required:
+        - guid
+        - redline_document_guid
+        - comment_text
+        - author
+        - created_at
+
+    CreateRedlineDocumentRequest:
+      type: object
+      properties:
+        matter_file_version_guid:
+          type: string
+          format: uuid
+          description: Associated matter file version GUID
+          example: "def67890-e89b-12d3-a456-426614174003"
+      required:
+        - matter_file_version_guid
+
+    UpdateRedlineDocumentRequest:
+      type: object
+      properties:
+        documentName:
+          type: string
+          description: Updated name for the redline document
+          example: "Contract Redlines v1.3"
+        documentType:
+          type: string
+          description: Updated type of redline document
+          example: "comparison"
+        status:
+          type: string
+          description: Updated status of the redline document
+          example: "completed"
+
+    Redline:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Unique identifier for the redline
+          example: "xyz98765-e89b-12d3-a456-426614174000"
+        parent_guid:
+          type: string
+          format: uuid
+          description: GUID of the parent redline, if any
+          example: "abc12345-e89b-12d3-a456-426614174000"
+        ordinal:
+          type: integer
+          description: Ordinal number of the redline
+          example: 1
+        clause:
+          type: object
+          description: Markup clause associated with the redline
+          properties:
+            state:
+              type: integer
+              description: Markup state of the clause
+              example: 1
+            markup:
+              type: array
+              items:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    description: Markup state of the text fragment
+                    example: 1
+                  contents:
+                    type: string
+                    description: Text content of the markup fragment
+                    example: "Sample text"
+                  comment_guids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+                    description: Comment GUIDs associated with this markup text
+                    example: []
+        disposition:
+          type: integer
+          description: Disposition status of the redline
+          example: 1
+        rewrite_copy:
+          type: object
+          description: Copy of the rewritten text
+          additionalProperties: true
+        analyses:
+          type: object
+          description: Analyses performed on the redline
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the redline was created
+          example: "2025-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the redline was last updated
+          example: "2025-01-15T12:30:00Z"
+      required:
+        - guid
+        - created_at
+        - updated_at
+
+    Domain:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the domain
+          example: "org1234"
+        name:
+          type: string
+          description: Name of the domain
+          example: "Acme Corporation"
+        description:
+          type: string
+          description: Description of the domain
+          example: "The main organization for Acme Corporation"
+        level:
+          type: integer
+          description: Level of the domain in the hierarchy, starting from 0 for the root domain
+          example: 0
+        path:
+          type: string
+          description: Path of the domain in the hierarchy
+          example: "/org1234/org5678"
+        parent_org:
+          type: string
+          description: Parent organization of the domain, nil if it is the root domain
+          example: "org1234"
+        child_orgs:
+          type: array
+          items:
+            type: string
+          description: Child organizations of the domain, empty if it has no children
+          example: ["org5678"]
+        created_by:
+          type: string
+          description: User ID of the user who created the domain
+          example: "user1234"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the domain was created
+          example: "2023-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the domain was last updated
+          example: "2023-01-01T00:00:00Z"
+      required:
+        - id
+        - name
+        - description
+        - level
+        - path
+        - created_by
+        - created_at
+        - updated_at
+
+    DomainEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Domain entry unique identifier
+          example: "legal-contracts"
+        name:
+          type: string
+          description: Domain entry display name
+          example: "Legal Contracts"
+        description:
+          type: string
+          description: Domain entry description
+          example: "Domain for managing legal contract matters"
+        parent_id:
+          type: string
+          description: Parent domain ID
+          example: "$ROOT"
+        is_active:
+          type: boolean
+          description: Whether the domain entry is currently active
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Domain entry creation timestamp
+          example: "2025-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Domain entry last update timestamp
+          example: "2025-01-15T12:30:00Z"
+      required:
+        - id
+        - name
+
+    CreateDomainRequest:
+      type: object
+      properties:
+        parent_id:
+          type: string
+          description: Parent domain ID, e.g. "org:1234"
+          example: "org:1234"
+        id:
+          type: string
+          description: Unique identifier for the domain, e.g. "org:1234"
+          example: "legal-contracts"
+        name:
+          type: string
+          description: Name of the domain, e.g. "Acme Corporation"
+          example: "Legal Contracts"
+        description:
+          type: string
+          description: Description of the domain, e.g. "The main organization for Acme Corporation"
+          example: "Domain for managing legal contract matters"
+      required:
+        - parent_id
+
+    UpdateDomainRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the domain, e.g. "org:1234"
+          example: "legal-contracts"
+        name:
+          type: string
+          description: Name of the domain, e.g. "Acme Corporation"
+          example: "Legal Contracts"
+        description:
+          type: string
+          description: Description of the domain, e.g. "The main organization for Acme Corporation"
+          example: "Domain for managing legal contract matters"
+
+    RedlineEntry:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Redline entry unique identifier
+          example: "abc12345-e89b-12d3-a456-426614174000"
+        change_type:
+          type: string
+          description: Type of change (addition, deletion, modification)
+          example: "modification"
+        original_text:
+          type: string
+          description: Original text before the change
+          example: "The party agrees to"
+        revised_text:
+          type: string
+          description: Revised text after the change
+          example: "The parties agree to"
+        page_number:
+          type: integer
+          description: Page number where the change occurs
+          example: 3
+        line_number:
+          type: integer
+          description: Line number where the change occurs
+          example: 15
+        position:
+          type: object
+          description: Position coordinates of the change
+          properties:
+            x:
+              type: number
+              example: 125.5
+            y:
+              type: number
+              example: 450.2
+        created_at:
+          type: string
+          format: date-time
+          description: Redline entry creation timestamp
+          example: "2025-01-01T00:00:00Z"
+      required:
+        - guid
+        - change_type
+
+    CreateRedlineRequest:
+      type: object
+      properties:
+        change_type:
+          type: string
+          description: Type of change (addition, deletion, modification)
+          example: "modification"
+        original_text:
+          type: string
+          description: Original text before the change
+          example: "The party agrees to"
+        revised_text:
+          type: string
+          description: Revised text after the change
+          example: "The parties agree to"
+        page_number:
+          type: integer
+          description: Page number where the change occurs
+          example: 3
+      required:
+        - change_type
+
+    UpdateRedlineRequest:
+      type: object
+      properties:
+        change_type:
+          type: string
+          description: Type of change (addition, deletion, modification)
+          example: "modification"
+        original_text:
+          type: string
+          description: Original text before the change
+          example: "The party agrees to"
+        revised_text:
+          type: string
+          description: Revised text after the change
+          example: "The parties agree to"
+        page_number:
+          type: integer
+          description: Page number where the change occurs
+          example: 3
+
+    Document:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+          description: Unique identifier for the document
+          example: "abc12345-e89b-12d3-a456-426614174000"
+        filename:
+          type: string
+          description: Name of the file
+          example: "contract.pdf"
+        name:
+          type: string
+          description: Name of the document
+          example: "Contract with Acme Corp"
+        mime_type:
+          type: string
+          description: MIME type of the document
+          example: "application/pdf"
+        description:
+          type: string
+          description: Description of the document
+          example: "Software licensing agreement"
+        created_by:
+          type: string
+          description: User ID of the user who created the document
+          example: "user123"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the document was created
+          example: "2025-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the document was last updated
+          example: "2025-01-15T12:30:00Z"
+        has_revisions:
+          type: boolean
+          description: Flag to indicate if the document contains revisions
+          example: true
+        security_check:
+          $ref: '#/components/schemas/SecurityCheckResult'
+      required:
+        - guid
+        - filename
+        - name
+        - mime_type
+        - description
+        - created_by
+        - created_at
+        - updated_at
+        - has_revisions
+        - security_check
+
+    CreateDocumentRequest:
+      type: object
+      properties:
+        owner_guid:
+          type: string
+          format: uuid
+          description: Owner GUID for the document
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        filename:
+          type: string
+          description: Name of the file being created
+          example: "contract.pdf"
+        name:
+          type: string
+          description: Name of the document
+          example: "Contract with Acme Corp"
+        description:
+          type: string
+          description: Description of the document
+          example: "Software licensing agreement"
+      required:
+        - owner_guid
+        - filename
+
+    UpdateDocumentRequest:
+      type: object
+      properties:
+        filename:
+          type: string
+          description: Name of the file
+          example: "updated_contract.pdf"
+        name:
+          type: string
+          description: Name of the document
+          example: "Updated Contract with Acme Corp"
+        description:
+          type: string
+          description: Description of the document
+          example: "Updated software licensing agreement"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+
+security:
+  - BearerAuth: []
+
+externalDocs:
+  description: V4Final Documentation
+  url: https://app.v4final.com/docs
