@@ -1,10 +1,10 @@
-DC := docker-compose
+DC := docker compose
 # OMIT_TABLES := -T corteza.actionlog -T corteza.automation_sessions -T corteza.resource_activity_log
 TS := $(shell date "+%Y%m%d%H%M%S")
 BACKEND_DDL_FILE ?= sql/backend-ddl-tables.sql
 
 up:
-	$(DC) up -d
+	$(DC) up -d -V
 
 ps:
 	$(DC) ps
