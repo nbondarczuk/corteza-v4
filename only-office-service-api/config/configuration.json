@@ -4,7 +4,7 @@
   "SERVER_ADDRESS" : "",
   "SERVER_PORT" : 3000,
 
-  "DOC_SERVER_HOST" : "http://documentserver/",
+  "DOC_SERVER_HOST" : "http://localhost/",
   "DOC_SERVER_CONVERTER_URL" : "converter",
   "DOC_SERVER_API_URL" : "web-apps/apps/api/documents/api.js",
   "DOC_SERVER_PRELOADER_URL" : "web-apps/apps/api/documents/preload.html",

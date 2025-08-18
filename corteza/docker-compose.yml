@@ -24,26 +24,16 @@ services:
       CORREDOR_ENABLED: ${CORREDOR_ENABLED}
       CORREDOR_LOG_LEVEL: ${CORREDOR_LOG_LEVEL}
 
-
   db:
     image: postgres:${POSTGRES_VERSION}
     restart: always
     healthcheck: { test: ["CMD-SHELL", "pg_isready -U corteza"], interval: 10s, timeout: 5s, retries: 5 }
+    command: -p 5433
+    expose:
+      - '5433'
+    ports:
+      - '5433:5433'
     environment:
       POSTGRES_USER:     ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
-  gotenberg:
-    image: gotenberg/gotenberg:8
-    restart: on-failure
-    ports:
-      - "4000:3000"
-
-  swagger-editor:
-    container_name: swagger_editor
-    image: docker.swagger.io/swaggerapi/swagger-editor
-    ports:
-      - '8081:8080'
-    volumes: [ "./swagger:/swagger" ]
-    environment:
-      SWAGGER_FILE: "/swagger/swagger.yaml"

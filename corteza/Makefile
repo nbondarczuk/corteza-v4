@@ -21,7 +21,7 @@ restore:
 	cat dump.sql | $(DC) exec db psql -U $(POSTGRES_USER)
 
 exec-db:
-	$(DC) exec -it db psql -U $(POSTGRES_USER)
+	$(DC) exec -it db psql -U $(POSTGRES_USER) -p $(POSTGRES_PORT)
 
 exec-server:
 	$(DC) exec -it server bash

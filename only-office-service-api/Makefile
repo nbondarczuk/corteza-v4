@@ -6,8 +6,11 @@ IMAGE := $(TARGET):latest
 build:
 	env GOOS=linux GOARCH=arm go build -o $(TARGET) .
 
-run:
+run up:
 	go run .
+
+down ps:
+	echo Not available
 
 image:
 	docker build -t $(IMAGE) .
